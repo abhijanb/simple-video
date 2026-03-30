@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:5000';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 
 function App() {
   const [socket, setSocket] = useState(null);
@@ -21,7 +21,6 @@ function App() {
   };
 
   useEffect(() => {
-    console.log(navigator.mediaDevices.getUserMedia)
     const newSocket = io(SERVER_URL);
     setSocket(newSocket);
 
@@ -241,17 +240,15 @@ function App() {
             </button>
             <button
               onClick={toggleMute}
-              className={`px-6 py-2 rounded-full font-semibold ${
-                isMuted ? 'bg-gray-700' : 'bg-purple-600 hover:bg-purple-700'
-              }`}
+              className={`px-6 py-2 rounded-full font-semibold ${isMuted ? 'bg-gray-700' : 'bg-purple-600 hover:bg-purple-700'
+                }`}
             >
               {isMuted ? 'Unmute' : 'Mute'}
             </button>
             <button
               onClick={toggleVideo}
-              className={`px-6 py-2 rounded-full font-semibold ${
-                isVideoOff ? 'bg-gray-700' : 'bg-green-600 hover:bg-green-700'
-              }`}
+              className={`px-6 py-2 rounded-full font-semibold ${isVideoOff ? 'bg-gray-700' : 'bg-green-600 hover:bg-green-700'
+                }`}
             >
               {isVideoOff ? 'Turn On Video' : 'Turn Off Video'}
             </button>
