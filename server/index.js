@@ -26,33 +26,7 @@ io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
 
     socket.on('join', async () => {
-        if (waitingQueue.includes(socket.id)) return;
-        if (waitingQueue.length > 0) {
-            const partnerId = waitingQueue.shift();
-            const roomId = `${partnerId}-${socket.id}`;
-            partnerMap[socket.id] = partnerId;
-            partnerMap[partnerId] = socket.id;
-
-            // Create call record in DB
-            const call = new Call({
-                user1SocketId: partnerId,
-                user2SocketId: socket.id,
-            });
-            await call.save();
-            activeCalls[roomId] = {
-                user1: partnerId,
-                user2: socket.id,
-                callId: call._id,
-            };
-
-            // Notify both users
-            io.to(partnerId).emit('matched', { partnerId: socket.id, roomId });
-            io.to(socket.id).emit('matched', { partnerId, roomId });
-        } else {
-            // Add to queue
-            waitingQueue.push(socket.id);
-            socket.emit('waiting');
-        }
+        await tryMatch(socket);
     });
 
     socket.on('offer', ({ to, offer }) => {
@@ -69,8 +43,7 @@ io.on('connection', (socket) => {
 
     socket.on('next', () => {
         handleDisconnect(socket, true);
-        waitingQueue.push(socket.id);
-        socket.emit('waiting');
+        tryMatch(socket);
     });
 
     socket.on('end', () => {
@@ -80,6 +53,33 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         handleDisconnect(socket, false);
     });
+
+    async function tryMatch(socket) {
+        if (waitingQueue.includes(socket.id)) return;
+        if (waitingQueue.length > 0) {
+            const partnerId = waitingQueue.shift();
+            const roomId = `${partnerId}-${socket.id}`;
+            partnerMap[socket.id] = partnerId;
+            partnerMap[partnerId] = socket.id;
+
+            const call = new Call({
+                user1SocketId: partnerId,
+                user2SocketId: socket.id,
+            });
+            await call.save();
+            activeCalls[roomId] = {
+                user1: partnerId,
+                user2: socket.id,
+                callId: call._id,
+            };
+
+            io.to(partnerId).emit('matched', { partnerId: socket.id, roomId });
+            io.to(socket.id).emit('matched', { partnerId, roomId });
+        } else {
+            waitingQueue.push(socket.id);
+            socket.emit('waiting');
+        }
+    }
 
     async function handleDisconnect(socket, isNext) {
         const partnerId = partnerMap[socket.id];
